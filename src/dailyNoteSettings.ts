@@ -268,6 +268,7 @@ class AddPresetModal extends Modal {
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
+        contentEl.addClass("daily-note-modal");
 
         contentEl.createEl("h2", { text: "Add New Preset" });
 

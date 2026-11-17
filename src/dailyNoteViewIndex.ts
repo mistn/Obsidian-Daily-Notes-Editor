@@ -6,6 +6,7 @@ import {
     WorkspaceLeaf,
     moment,
     TFolder,
+    App,
 } from "obsidian";
 
 import { around } from "monkey-around";
@@ -234,6 +235,12 @@ export default class DailyNoteViewPlugin extends Plugin {
 
     // Used for patch workspaceleaf pinned behaviors
     patchWorkspaceLeaf() {
+        // Only the set is captured: the wrappers below run with their own
+        // `this` (the leaf), so they cannot read plugin fields directly.
+        const suppressed = this.suppressedRecentFiles;
+        const patchRecentFiles = (app: App) =>
+            this.patchRecentFilesPlugin(app);
+
         this.register(
             around(WorkspaceLeaf.prototype, {
                 getRoot(old) {
@@ -253,42 +260,68 @@ export default class DailyNoteViewPlugin extends Plugin {
                 },
                 openFile(old) {
                     return function (file: TFile, openState?: OpenViewState) {
-                        if (isDailyNoteLeaf(this)) {
-                            setTimeout(
-                                around(Workspace.prototype, {
-                                    recordMostRecentOpenedFile(old) {
-                                        return function (_file: TFile) {
-                                            // Don't update the quick switcher's recent list
-                                            if (_file !== file) {
-                                                return old.call(this, _file);
-                                            }
-                                        };
-                                    },
-                                }),
-                                1
-                            );
-                            const recentFiles =
-                                this.app.plugins.plugins[
-                                    "recent-files-obsidian"
-                                ];
-                            if (recentFiles)
-                                setTimeout(
-                                    around(recentFiles, {
-                                        shouldAddFile(old) {
-                                            return function (_file: TFile) {
-                                                // Don't update the Recent Files plugin
-                                                return (
-                                                    _file !== file &&
-                                                    old.call(this, _file)
-                                                );
-                                            };
-                                        },
-                                    }),
-                                    1
-                                );
+                        if (!isDailyNoteLeaf(this)) {
+                            return old.call(this, file, openState);
                         }
-                        return old.call(this, file, openState);
+
+                        // Keep this file out of the recent lists for the
+                        // duration of the open. The old code installed a fresh
+                        // patch per opened note and never removed it, so every
+                        // note ever opened inline stayed excluded forever.
+                        suppressed.add(file.path);
+                        patchRecentFiles(this.app);
+
+                        const result = old.call(this, file, openState);
+                        const release = () =>
+                            window.setTimeout(
+                                () => suppressed.delete(file.path),
+                                500
+                            );
+                        Promise.resolve(result).then(release, release);
+                        return result;
                     };
+                },
+            })
+        );
+
+        // recordMostRecentOpenedFile is internal and no longer exists in
+        // recent builds; around() would only add an unused property, so only
+        // patch it when it is actually there.
+        if (
+            typeof (Workspace.prototype as any).recordMostRecentOpenedFile ===
+            "function"
+        ) {
+            this.register(
+                around(Workspace.prototype, {
+                    recordMostRecentOpenedFile(old: any) {
+                        return function (file: TFile) {
+                            if (suppressed.has(file.path)) return;
+                            return old.call(this, file);
+                        };
+                    },
+                })
+            );
+        }
+    }
+
+    /** Paths that are being opened inline and must not reach the recent list */
+    private suppressedRecentFiles = new Set<string>();
+    private patchedRecentFilesPlugins = new WeakSet<object>();
+
+    private patchRecentFilesPlugin(app: App) {
+        const recentFiles = app.plugins.plugins["recent-files-obsidian"];
+        if (!recentFiles || this.patchedRecentFilesPlugins.has(recentFiles))
+            return;
+
+        this.patchedRecentFilesPlugins.add(recentFiles);
+        this.register(
+            around(recentFiles, {
+                // Arrow on purpose: the factory is called without a receiver,
+                // and the returned function needs the plugin, not the leaf.
+                shouldAddFile: (old: any) => (file: TFile) => {
+                    if (this.suppressedRecentFiles.has(file.path))
+                        return false;
+                    return old.call(recentFiles, file);
                 },
             })
         );

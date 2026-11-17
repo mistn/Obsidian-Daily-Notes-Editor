@@ -221,7 +221,10 @@ body.daily-notes-hide-backlinks .daily-note-view .embedded-backlinks {
 }
 
 /* Add preset modal styles */
-.setting-item {
+/* Scoped on purpose: .setting-item and .modal-button-container are Obsidian
+   core classes, so styling them globally changed every settings row and every
+   modal in the app. */
+.daily-note-settings-container .setting-item {
     margin-bottom: var(--size-4-4);
 }
 
@@ -233,7 +236,7 @@ body.daily-notes-hide-backlinks .daily-note-view .embedded-backlinks {
     background-color: var(--background-primary);
 }
 
-.modal-button-container {
+.daily-note-modal .modal-button-container {
     display: flex;
     justify-content: flex-end;
     gap: var(--size-4-2);

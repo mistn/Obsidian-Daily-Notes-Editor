@@ -216,21 +216,32 @@ export class DailyNoteView extends ItemView {
         this.addAction("clock", "Select time field", (e) => {
             const menu = new Menu();
 
+            // Daily notes are ordered by the date in their filename, so the
+            // time fields are not offered there: sortDailyNotes() ignores them
+            // and the menu would silently do nothing.
+            const dailyMode = this.selectionMode === "daily";
+            const isChecked = (field: TimeField) =>
+                dailyMode && !this.timeField.startsWith("name")
+                    ? field === "nameReverse"
+                    : this.timeField === field;
+
             // Add time field selection options
             const addTimeFieldOption = (title: string, field: TimeField) => {
                 menu.addItem((item) => {
                     item.setTitle(title);
-                    item.setChecked(this.timeField === field);
+                    item.setChecked(isChecked(field));
                     item.onClick(() => {
                         this.setTimeField(field);
                     });
                 });
             };
 
-            addTimeFieldOption("Creation Time", "ctime");
-            addTimeFieldOption("Modification Time", "mtime");
-            addTimeFieldOption("Creation Time (Reverse)", "ctimeReverse");
-            addTimeFieldOption("Modification Time (Reverse)", "mtimeReverse");
+            if (!dailyMode) {
+                addTimeFieldOption("Creation Time", "ctime");
+                addTimeFieldOption("Modification Time", "mtime");
+                addTimeFieldOption("Creation Time (Reverse)", "ctimeReverse");
+                addTimeFieldOption("Modification Time (Reverse)", "mtimeReverse");
+            }
             // Add new options for sorting by name
             addTimeFieldOption("Name (A-Z)", "name");
             addTimeFieldOption("Name (Z-A)", "nameReverse");
@@ -451,6 +462,7 @@ class CustomRangeModal extends Modal {
 
     onOpen() {
         const { contentEl } = this;
+        contentEl.addClass("daily-note-modal");
 
         contentEl.createEl("h2", { text: "Select Custom Date Range" });
 
@@ -530,6 +542,7 @@ class SelectTargetModal extends Modal {
     onOpen() {
         const { contentEl } = this;
         contentEl.empty();
+        contentEl.addClass("daily-note-modal");
 
         contentEl.createEl("h2", {
             text: this.mode === "folder" ? "Select Folder" : "Select Tag",

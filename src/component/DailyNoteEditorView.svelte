@@ -247,16 +247,18 @@
         if (selectionMode === "daily") {
             // For daily notes, we need to check if the file should be added to the rendered files
             const filteredFiles = fileManager.getFilteredFiles();
-            if (filteredFiles.some(f => f.basename === file.basename) && 
-                !renderedFiles.some(f => f.basename === file.basename)) {
+            if (filteredFiles.some(f => f.path === file.path) && 
+                !renderedFiles.some(f => f.path === file.path)) {
                 renderedFiles = [file, ...renderedFiles];
                 // Automatically mark the new note as visible
                 visibleNotes.add(file.path);
                 visibleNotes = visibleNotes;
             }
         } else {
-            // For folder and tag modes, we can simply update the rendered files
-            renderedFiles = fileManager.getFilteredFiles().slice(0, renderedFiles.length);
+            // Rebuild from the manager instead of slicing in place: the local
+            // filteredFiles copy stayed stale, so a later fill could splice in
+            // a note that was already rendered and break the keyed each block.
+            rebuildList();
         }
     }
 
@@ -265,7 +267,7 @@
         
         // Remove the file from rendered files if it exists
         renderedFiles = renderedFiles.filter((dailyNote) => {
-            return dailyNote.basename !== file.basename;
+            return dailyNote.path !== file.path;
         });
         
         // Remove from visible notes

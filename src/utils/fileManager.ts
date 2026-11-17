@@ -103,7 +103,18 @@ export class FileManager {
     }
 
     private fetchDailyNotes(): void {
-        this.cacheDailyNotes = getAllDailyNotes();
+        try {
+            this.cacheDailyNotes = getAllDailyNotes();
+        } catch (error) {
+            // The daily notes folder is missing, renamed or the core plugin is
+            // off. Throwing here used to abort the FileManager constructor and
+            // leave the whole view blank.
+            console.error(
+                "Daily Notes Editor: cannot read the daily notes folder",
+                error
+            );
+            this.cacheDailyNotes = {};
+        }
         this.allFiles = this.sortDailyNotes(
             Object.values(this.cacheDailyNotes) as TFile[]
         );
@@ -422,7 +433,12 @@ export class FileManager {
         }
 
         // Refresh the daily notes cache to ensure we have the latest data
-        this.cacheDailyNotes = getAllDailyNotes();
+        try {
+            this.cacheDailyNotes = getAllDailyNotes();
+        } catch {
+            // Missing folder: treat it as empty instead of throwing every hour
+            this.cacheDailyNotes = {};
+        }
 
         // @ts-ignore
         const currentDate = moment();
@@ -455,18 +471,28 @@ export class FileManager {
         }
 
         const currentDate = moment();
-        const currentDailyNote: any = await createDailyNote(currentDate);
+        let currentDailyNote: TFile | null = null;
+        try {
+            currentDailyNote = (await createDailyNote(currentDate)) ?? null;
+        } catch (error) {
+            console.error(
+                "Daily Notes Editor: cannot create today's daily note",
+                error
+            );
+            return null;
+        }
 
         if (currentDailyNote) {
+            const note = currentDailyNote;
             // The vault 'create' event may already have added this file while
             // createDailyNote() was in flight
-            if (!this.allFiles.some((f) => f.path === currentDailyNote.path)) {
-                this.allFiles.push(currentDailyNote);
+            if (!this.allFiles.some((f) => f.path === note.path)) {
+                this.allFiles.push(note);
                 this.allFiles = this.sortDailyNotes(this.allFiles);
             }
             this.hasCurrentDay = true;
             this.filterFilesByRange();
-            return currentDailyNote;
+            return note;
         }
 
         return null;

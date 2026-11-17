@@ -91,34 +91,46 @@
 
             rendered = true;
             
-            // Set a small timeout to allow the editor to render completely
-            const timeout = window.setTimeout(() => {
-                if (createdLeaf && containerEl) {
-                    // Get the actual height of the editor content
-                    if(!(createdLeaf.view instanceof MarkdownView)) return; 
-                    // @ts-ignore
-                    const actualHeight = createdLeaf.view.editMode?.editor?.cm?.dom.innerHeight;
-                    if (actualHeight > 0) {
-                        editorHeight = actualHeight;
-                        // Apply the height to the container
-                        containerEl.style.minHeight = `${editorHeight}px`;
+            // The editor can still be laying out when the leaf reports ready
+            // (large notes, slow disks), so poll for a few frames instead of
+            // giving up after a single look.
+            let attempts = 0;
+            const measure = () => {
+                if (isDestroying || !createdLeaf || !containerEl) return;
 
-                        if (autoFocus && createdLeaf.view instanceof MarkdownView) {
-                            const editor = createdLeaf.view.editor;
-                            if (editor) {
-                                editor.focus();
-                                // lineCount() is exclusive; the last line is -1
-                                editor.setCursor(
-                                    Math.max(editor.lineCount() - 1, 0),
-                                    0
-                                );
-                            }
-                        }
+                const view = createdLeaf.view;
+                const actualHeight =
+                    view instanceof MarkdownView
+                        ? (view as any).editMode?.editor?.cm?.dom.innerHeight
+                        : undefined;
 
-                        window.clearTimeout(timeout);
+                if (!actualHeight || actualHeight <= 0) {
+                    if (++attempts < 10) window.setTimeout(measure, 100);
+                    return;
+                }
+
+                editorHeight = actualHeight;
+                // Apply the height to the container
+                containerEl.style.minHeight = `${editorHeight}px`;
+
+                // Don't steal focus from another window or app
+                if (
+                    autoFocus &&
+                    view instanceof MarkdownView &&
+                    containerEl.ownerDocument.hasFocus()
+                ) {
+                    const editor = view.editor;
+                    if (editor) {
+                        editor.focus();
+                        // lineCount() is exclusive; the last line is -1
+                        editor.setCursor(
+                            Math.max(editor.lineCount() - 1, 0),
+                            0
+                        );
                     }
                 }
-            }, 400);
+            };
+            window.setTimeout(measure, 100);
         } catch (error) {
             console.error("Error creating leaf view:", error);
         }
