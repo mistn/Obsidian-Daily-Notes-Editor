@@ -3,6 +3,11 @@ name: Release Obsidian plugin
 on:
     release:
         types: [created]
+    workflow_dispatch:
+        inputs:
+            tag:
+                description: Existing tag to build and attach the assets to
+                required: true
 
 permissions:
     contents: write
@@ -15,6 +20,8 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - uses: actions/checkout@v4
+              with:
+                  ref: ${{ github.event.release.tag_name || github.event.inputs.tag }}
 
             - uses: pnpm/action-setup@v4
               with:
@@ -33,14 +40,14 @@ jobs:
                   pnpm build
                   mkdir ${{ env.PLUGIN_NAME }}
                   cp main.js manifest.json styles.css ${{ env.PLUGIN_NAME }}
-                  zip -r ${{ env.PLUGIN_NAME }}-v${{ github.event.release.tag_name }}.zip ${{ env.PLUGIN_NAME }}
+                  zip -r ${{ env.PLUGIN_NAME }}-v${{ github.event.release.tag_name || github.event.inputs.tag }}.zip ${{ env.PLUGIN_NAME }}
 
             - name: Upload release assets
               uses: softprops/action-gh-release@v2
               with:
-                  tag_name: ${{ github.event.release.tag_name }}
+                  tag_name: ${{ github.event.release.tag_name || github.event.inputs.tag }}
                   files: |
                       main.js
                       manifest.json
                       styles.css
-                      ${{ env.PLUGIN_NAME }}-v${{ github.event.release.tag_name }}.zip
+                      ${{ env.PLUGIN_NAME }}-v${{ github.event.release.tag_name || github.event.inputs.tag }}.zip
