@@ -3,6 +3,7 @@
     import type { WorkspaceLeaf } from "obsidian";
 
     import { TFile, moment } from "obsidian";
+    import { getDateFromFile } from "obsidian-daily-notes-interface";
     import DailyNote from "./DailyNote.svelte";
     import { inview } from "svelte-inview";
     import { TimeRange, SelectionMode, TimeField } from "../types/time";
@@ -267,6 +268,12 @@
         }
         visibleNotes = visibleNotes;
     }
+
+    function isToday(file: TFile): boolean {
+        if (!plugin.settings.autoFocus) return false;
+        const fileDate = getDateFromFile(file, "day");
+        return fileDate?.isSame(moment(), "day") ?? false;
+    }
 </script>
 
 <div class="daily-note-view">
@@ -295,6 +302,7 @@
                 plugin={plugin} 
                 leaf={leaf} 
                 shouldRender={visibleNotes.has(file.path)}
+                autoFocus={isToday(file)}
             />
         </div>
     {/each}

@@ -8,6 +8,7 @@
     export let plugin: DailyNoteViewPlugin;
     export let leaf: WorkspaceLeaf;
     export let shouldRender: boolean = true;
+    export let autoFocus: boolean = false;
 
     let editorEl: HTMLElement;
     let containerEl: HTMLElement;
@@ -101,6 +102,18 @@
                         editorHeight = actualHeight;
                         // Apply the height to the container
                         containerEl.style.minHeight = `${editorHeight}px`;
+
+                        if (autoFocus && createdLeaf.view instanceof MarkdownView) {
+                            const editor = createdLeaf.view.editor;
+                            if (editor) {
+                                editor.focus();
+                                // lineCount() is exclusive; the last line is -1
+                                editor.setCursor(
+                                    Math.max(editor.lineCount() - 1, 0),
+                                    0
+                                );
+                            }
+                        }
 
                         window.clearTimeout(timeout);
                     }
