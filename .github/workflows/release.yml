@@ -35,6 +35,14 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            # styles.css and main.js are build outputs and no longer tracked, so
+            # a checkout alone cannot build the release: check them first.
+            - name: Verify sources for the build outputs
+              run: |
+                  test -f src/style/index.css
+                  test ! -f styles.css
+                  test ! -f main.js
+
             - name: Build
               run: |
                   pnpm build
