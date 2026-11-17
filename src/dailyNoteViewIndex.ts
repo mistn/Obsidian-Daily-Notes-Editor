@@ -3,16 +3,13 @@ import {
     OpenViewState,
     TFile,
     Workspace,
-    WorkspaceContainer,
-    WorkspaceItem,
     WorkspaceLeaf,
     moment,
-    requireApiVersion,
     TFolder,
 } from "obsidian";
 
 import { around } from "monkey-around";
-import { DailyNoteEditor, isDailyNoteLeaf } from "./leafView";
+import { isDailyNoteLeaf } from "./leafView";
 import "./style/index.css";
 import { addIconList } from "./utils/icon";
 import {
@@ -195,7 +192,10 @@ export default class DailyNoteViewPlugin extends Plugin {
     }
 
     patchWorkspace() {
-        let layoutChanging = false;
+        // The iterateLeaves/changeLayout pair that used to live here only
+        // existed to keep hover editors alive on 0.14.x, where popovers were
+        // not part of rootSplit. minAppVersion is well past that, so the
+        // compatibility branch was dead code and went with it.
         const uninstaller = around(Workspace.prototype, {
             getActiveViewOfType: (next: any) =>
                 function (t: any) {
@@ -212,53 +212,6 @@ export default class DailyNoteViewPlugin extends Plugin {
                     }
                     return result;
                 },
-            changeLayout(old) {
-                return async function (workspace: unknown) {
-                    layoutChanging = true;
-                    try {
-                        // Don't consider hover popovers part of the workspace while it's changing
-                        await old.call(this, workspace);
-                    } finally {
-                        layoutChanging = false;
-                    }
-                };
-            },
-            iterateLeaves(old) {
-                type leafIterator = (item: WorkspaceLeaf) => boolean | void;
-                return function (arg1, arg2) {
-                    // Fast exit if desired leaf found
-                    if (old.call(this, arg1, arg2)) return true;
-
-                    // Handle old/new API parameter swap
-                    const cb: leafIterator = (
-                        typeof arg1 === "function" ? arg1 : arg2
-                    ) as leafIterator;
-                    const parent: WorkspaceItem = (
-                        typeof arg1 === "function" ? arg2 : arg1
-                    ) as WorkspaceItem;
-
-                    if (!parent) return false; // <- during app startup, rootSplit can be null
-                    if (layoutChanging) return false; // Don't let HEs close during workspace change
-
-                    // 0.14.x doesn't have WorkspaceContainer; this can just be an instanceof check once 15.x is mandatory:
-                    if (!requireApiVersion("0.15.0")) {
-                        if (
-                            parent === this.app.workspace.rootSplit ||
-                            (WorkspaceContainer &&
-                                parent instanceof WorkspaceContainer)
-                        ) {
-                            for (const popover of DailyNoteEditor.popoversForWindow(
-                                (parent as WorkspaceContainer).win
-                            )) {
-                                // Use old API here for compat w/0.14.x
-                                if (old.call(this, cb, popover.rootSplit))
-                                    return true;
-                            }
-                        }
-                    }
-                    return false;
-                };
-            },
             setActiveLeaf: (next: any) =>
                 function (e: WorkspaceLeaf, t?: any) {
                     if ((e as any).parentLeaf) {
