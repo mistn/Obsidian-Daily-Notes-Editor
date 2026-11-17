@@ -29,9 +29,13 @@ A plugin for you to edit a bunch of daily notes in one page(inline), which works
     -   Hide frontmatter in daily notes
     -   Hide backlinks in daily notes
     -   Create and open Daily Notes Editor on startup
+    -   Hide daily notes dated after today
+    -   Auto focus today's note and put the cursor at the end of it
+    -   Reuse an already open editor instead of opening a new tab
 -   Save custom presets for quick access to specific folders or tags
 -   Navigate between notes using keyboard shortcuts (up/down)
 -   Right-click on folders to open all notes in that folder in the Daily Notes Editor
+-   Tag mode matches both inline `#tags` and `tags` in frontmatter
 
 # Installation
 
@@ -42,6 +46,10 @@ A plugin for you to edit a bunch of daily notes in one page(inline), which works
 -   **Hide frontmatter**: Toggle to hide frontmatter in daily notes
 -   **Hide backlinks**: Toggle to hide backlinks in daily notes
 -   **Create and open Daily Notes Editor on startup**: Automatically create today's daily note and open the Daily Notes Editor when Obsidian starts
+-   **Use arrow up/down key to navigate between notes**: Jump to the previous/next note when the cursor leaves the current one with the arrow keys
+-   **Auto focus today's note**: Focus today's note and move the cursor to the end of the document, so you can start typing right away
+-   **Switch to existing editor**: If a Daily Notes Editor is already open, focus it instead of opening a new tab
+-   **Hide future dates**: Hide daily notes dated after today (daily notes mode only)
 -   **Presets**: Save and manage custom presets for quick access to specific folders or tags
 
 # Usage
