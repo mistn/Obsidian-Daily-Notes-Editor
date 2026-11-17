@@ -12,6 +12,11 @@ node_modules
 # They should be uploaded to GitHub releases instead.
 main.js
 
+# styles.css is generated from src/style/index.css by the build, so it is not
+# tracked either. `pnpm dev` rewrites it unminified and used to leave a diff
+# behind on every save.
+styles.css
+
 # Exclude sourcemaps
 *.map
 
