@@ -34,6 +34,8 @@ export class DailyNoteView extends ItemView {
         end: Date;
     } | null = null;
 
+    settingsVersion = 0;
+
     constructor(leaf: WorkspaceLeaf, plugin: DailyNoteViewPlugin) {
         super(leaf);
         this.plugin = plugin;
@@ -167,6 +169,7 @@ export class DailyNoteView extends ItemView {
                     selectionMode: this.selectionMode,
                     target: this.target,
                     timeField: this.timeField,
+                    settingsVersion: this.settingsVersion,
                 },
             });
 
@@ -189,6 +192,15 @@ export class DailyNoteView extends ItemView {
 
     openDailyNoteEditor() {
         this.plugin.openDailyNoteEditor();
+    }
+
+    /**
+     * Re-read plugin settings in the Svelte view (e.g. after toggling an option)
+     */
+    public refreshFromSettings() {
+        if (this.view) {
+            this.view.$set({ settingsVersion: ++this.settingsVersion });
+        }
     }
 
     async onOpen(): Promise<void> {

@@ -14,6 +14,7 @@ export interface FileManagerOptions {
     customRange?: { start: Date; end: Date } | null;
     app?: App;
     timeField?: TimeField;
+    hideFutureDates?: boolean;
 }
 
 export class FileManager {
@@ -163,11 +164,7 @@ export class FileManager {
         // No time range or "all" means no filtering
         if (!this.options.timeRange || this.options.timeRange === "all") {
             this.filteredFiles = [...this.allFiles];
-            return this.filteredFiles;
-        }
-
-        // Use different filtering methods based on different modes
-        if (this.options.mode === "daily") {
+        } else if (this.options.mode === "daily") {
             // Daily mode: filter daily notes by date
             this.filterDailyNotesByRange();
         } else {
@@ -175,7 +172,23 @@ export class FileManager {
             this.filterFilesByTimeRange();
         }
 
+        this.filteredFiles = this.filteredFiles.filter(
+            (file) => !this.isFutureDailyNote(file)
+        );
+
         return this.filteredFiles;
+    }
+
+    /**
+     * Whether the note is dated after today and should be hidden
+     * Only applies to daily notes, and only when the option is enabled
+     */
+    private isFutureDailyNote(file: TFile): boolean {
+        if (!this.options.hideFutureDates) return false;
+        if (this.options.mode !== "daily") return false;
+
+        const fileDate = getDateFromFile(file as any, "day");
+        return !!fileDate && fileDate.isAfter(moment(), "day");
     }
 
     /**
@@ -439,7 +452,7 @@ export class FileManager {
     public updateOptions(options: Partial<FileManagerOptions>): void {
         this.options = { ...this.options, ...options };
 
-        if (options.timeRange || options.customRange) {
+        if (options.timeRange || options.customRange || options.hideFutureDates !== undefined) {
             this.filterFilesByRange();
         }
 

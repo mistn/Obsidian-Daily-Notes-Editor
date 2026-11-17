@@ -120,6 +120,17 @@ export default class DailyNoteViewPlugin extends Plugin {
         workspace.revealLeaf(leaf);
     }
 
+    /**
+     * Let every open editor re-read plugin settings
+     */
+    public refreshAllViews() {
+        this.app.workspace
+            .getLeavesOfType(DAILY_NOTE_VIEW_TYPE)
+            .forEach((leaf) => {
+                (leaf.view as DailyNoteView)?.refreshFromSettings?.();
+            });
+    }
+
     async openFolderView(folderPath: string, timeField: TimeField = "mtime") {
         const workspace = this.app.workspace;
         const leaf = workspace.getLeaf(true);

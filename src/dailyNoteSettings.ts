@@ -6,6 +6,7 @@ export interface DailyNoteSettings {
     hideBacklinks: boolean;
     createAndOpenOnStartup: boolean;
     useArrowUpOrDownToNavigate: boolean;
+    hideFutureDates: boolean;
 
     preset: {
         type: "folder" | "tag";
@@ -18,6 +19,7 @@ export const DEFAULT_SETTINGS: DailyNoteSettings = {
     hideBacklinks: false,
     createAndOpenOnStartup: false,
     useArrowUpOrDownToNavigate: false,
+    hideFutureDates: false,
     preset: [],
 };
 
@@ -115,6 +117,21 @@ export class DailyNoteSettingTab extends PluginSettingTab {
                     .onChange(async (value) => {
                         this.plugin.settings.useArrowUpOrDownToNavigate = value;
                         this.applySettingsUpdate();
+                    })
+            );
+
+        new Setting(containerEl)
+            .setName("Hide future dates")
+            .setDesc(
+                "Hide daily notes dated after today, so upcoming entries do not clutter the view"
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(settings.hideFutureDates)
+                    .onChange(async (value) => {
+                        this.plugin.settings.hideFutureDates = value;
+                        this.applySettingsUpdate();
+                        this.plugin.refreshAllViews();
                     })
             );
 

@@ -17,8 +17,10 @@
     export let selectionMode: SelectionMode = "daily";
     export let target: string = "";
     export let timeField: TimeField = "mtime"; // 默认使用修改时间
-    
+    export let settingsVersion: number = 0; // bumped when plugin settings change
+
     const size = 1;
+    let appliedSettingsVersion = -1;
     let intervalId;
 
     let renderedFiles: TFile[] = [];
@@ -40,20 +42,24 @@
         timeRange: selectedRange,
         customRange: customRange,
         app: plugin.app,
-        timeField: timeField
+        timeField: timeField,
+        hideFutureDates: plugin.settings.hideFutureDates
     } as FileManagerOptions;
 
-    $: if (fileManager && (selectedRange !== fileManager.options.timeRange || 
+    $: if (fileManager && (settingsVersion !== appliedSettingsVersion ||
+                          selectedRange !== fileManager.options.timeRange || 
                           customRange !== fileManager.options.customRange ||
                           selectionMode !== fileManager.options.mode ||
                           target !== fileManager.options.target ||
                           timeField !== fileManager.options.timeField)) {
+        appliedSettingsVersion = settingsVersion;
         fileManager.updateOptions({
             timeRange: selectedRange,
             customRange: customRange,
             mode: selectionMode,
             target: target,
-            timeField: timeField
+            timeField: timeField,
+            hideFutureDates: plugin.settings.hideFutureDates
         });
         
         // Reset rendered files and start filling viewport again
