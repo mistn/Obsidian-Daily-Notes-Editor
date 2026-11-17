@@ -34,6 +34,21 @@ export interface DailyNoteEditorParent {
 const popovers = new WeakMap<Element, DailyNoteEditor>();
 type ConstructableWorkspaceSplit = new (ws: Workspace, dir: "horizontal" | "vertical") => WorkspaceSplit;
 
+let layoutChangeScheduled = false;
+
+/**
+ * Obsidian has to be told that a leaf was added, but every note that appears
+ * used to trigger a global layout change. Coalesce them into one per frame.
+ */
+function scheduleLayoutChange(ws: Workspace) {
+    if (layoutChangeScheduled) return;
+    layoutChangeScheduled = true;
+    window.requestAnimationFrame(() => {
+        layoutChangeScheduled = false;
+        ws.onLayoutChange();
+    });
+}
+
 export function isDailyNoteLeaf(leaf: WorkspaceLeaf) {
     // Work around missing enhance.js API by checking match condition instead of looking up parent
     return leaf.containerEl.matches(".dn-editor.dn-leaf-view .workspace-leaf");
@@ -353,7 +368,7 @@ export class DailyNoteEditor extends nosuper(HoverPopover) {
             this.timer = 0;
             this.targetEl.appendChild(this.hoverEl);
             this.onShow();
-            this.plugin.app.workspace.onLayoutChange();
+            scheduleLayoutChange(this.plugin.app.workspace);
             // initializingHoverPopovers.remove(this);
             // activeHoverPopovers.push(this);
             // initializePopoverChecker();

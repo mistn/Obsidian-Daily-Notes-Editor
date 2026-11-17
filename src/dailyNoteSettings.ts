@@ -58,8 +58,9 @@ export class DailyNoteSettingTab extends PluginSettingTab {
     }
 
     async display() {
-        await this.plugin.loadSettings();
-
+        // Do not reload from disk here: a toggle change is saved on a 200ms
+        // debounce, and re-reading data.json in the meantime would silently
+        // throw the change away
         const { containerEl } = this;
         const settings = this.plugin.settings;
 
@@ -117,6 +118,9 @@ export class DailyNoteSettingTab extends PluginSettingTab {
 
         new Setting(containerEl)
             .setName("Use arrow up/down key to navigate between notes")
+            .setDesc(
+                "Reload the plugin after changing this: the keymap is registered at startup"
+            )
             .addToggle((toggle) =>
                 toggle
                     .setValue(settings.useArrowUpOrDownToNavigate)

@@ -20,7 +20,9 @@
     export let timeField: TimeField = "mtime"; // 默认使用修改时间
     export let settingsVersion: number = 0; // bumped when plugin settings change
 
-    const size = 1;
+    // Notes added per fill tick. One per millisecond rebuilt the whole
+    // rendered list once per note (O(n²)) and kept a 1kHz timer alive.
+    const size = 20;
     let appliedSettingsVersion = -1;
     let intervalId;
 
@@ -137,9 +139,9 @@
     }
 
     function startFillViewport() {
-        if (destroyed) return;
+        if (destroyed || !hasMore) return;
         if (!intervalId) {
-            intervalId = setInterval(infiniteHandler, 1);
+            intervalId = setInterval(infiniteHandler, 16);
         }
     }
 
@@ -151,20 +153,28 @@
     function infiniteHandler() {
         if (destroyed) return;
         if (leaf.height === 0) return;
-        if (!fileManager || !hasMore) return;
+        if (!fileManager) return;
+
+        if (!hasMore) {
+            stopFillViewport();
+            return;
+        }
+
         if (filteredFiles.length === 0) {
             hasMore = false;
-        } else {
-            renderedFiles = [
-                ...renderedFiles,
-                ...filteredFiles.splice(0, size)
-            ];
-            if (firstLoaded) {
-                window.setTimeout(() => {
-                    ensureViewFilled();
-                    firstLoaded = false;
-                }, 100);
-            }
+            stopFillViewport();
+            return;
+        }
+
+        renderedFiles = [
+            ...renderedFiles,
+            ...filteredFiles.splice(0, size)
+        ];
+        if (firstLoaded) {
+            window.setTimeout(() => {
+                ensureViewFilled();
+                firstLoaded = false;
+            }, 100);
         }
     }
 
@@ -217,6 +227,8 @@
     }
 
     export function check() {
+        if (!fileManager) return;
+
         // Check if there's a new daily note (e.g., after day change)
         const hadDailyNote = fileManager.hasCurrentDayNote();
         fileManager.checkDailyNote();

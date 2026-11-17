@@ -226,7 +226,11 @@
                 
             </div>
         {/if}
-        <div class="daily-note-editor" data-collapsed={isCollapsed} aria-hidden="true" bind:this={editorEl} data-title={title} on:click={handleEditorClick} on:keydown={handleEditorKeydown}>
+        <!-- The handlers forward focus into the embedded editor and keep
+             Escape from bubbling to Obsidian's tab switcher; the editor itself
+             is the interactive element, so a role here would be noise. -->
+        <!-- svelte-ignore a11y-no-static-element-interactions -->
+        <div class="daily-note-editor" data-collapsed={isCollapsed} bind:this={editorEl} data-title={title} on:click={handleEditorClick} on:keydown={handleEditorKeydown}>
             {#if !rendered && shouldRender}
                 <div class="editor-placeholder">Loading...</div>
             {/if}

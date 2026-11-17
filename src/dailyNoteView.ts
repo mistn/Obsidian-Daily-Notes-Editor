@@ -9,6 +9,7 @@ import {
     Modal,
     App,
     ButtonComponent,
+    moment,
 } from "obsidian";
 import { TimeRange, TimeField } from "./types/time";
 import DailyNoteEditorView from "./component/DailyNoteEditorView.svelte";
@@ -160,8 +161,14 @@ export class DailyNoteView extends ItemView {
             if (customState.timeField) this.timeField = customState.timeField;
             if (customState.selectedRange)
                 this.selectedDaysRange = customState.selectedRange;
-            if (customState.customRange)
-                this.customRange = customState.customRange;
+            if (customState.customRange) {
+                // Workspace state is serialized to JSON, so the dates come
+                // back as strings even though the type says Date
+                this.customRange = {
+                    start: moment(customState.customRange.start).toDate(),
+                    end: moment(customState.customRange.end).toDate(),
+                };
+            }
 
             const view = new DailyNoteEditorView({
                 target: this.contentEl,

@@ -242,6 +242,11 @@ export class FileManager {
         );
     }
 
+    private isToday(file: TFile): boolean {
+        const date = getDateFromFile(file as any, "day");
+        return !!date && date.isSame(moment(), "day");
+    }
+
     private isBlankBody(file: TFile, text: string): boolean {
         const cache = this.options.app?.metadataCache.getFileCache(file);
         const frontmatterEnd = cache?.frontmatterPosition?.end?.offset;
@@ -294,7 +299,11 @@ export class FileManager {
             );
             if (token !== this.emptyCheckToken) return false; // superseded
             results.forEach((isEmpty, index) => {
-                if (isEmpty) next.add(chunk[index].path);
+                const file = chunk[index];
+                // Never hide today's note: it is where you are most likely to
+                // start typing, and hiding it leaves the view with nothing to
+                // click and no obvious way back
+                if (isEmpty && !this.isToday(file)) next.add(file.path);
             });
         }
 
@@ -339,10 +348,14 @@ export class FileManager {
             this.options.timeField
         );
 
+        // Sorting by name has no timestamp, so fall back to mtime: otherwise
+        // moment(undefined) is "now" and every file matched every range
+        const rangeField = baseTimeField === "name" ? "mtime" : baseTimeField;
+
         // Filter files by creation or modification time
         this.filteredFiles = this.allFiles.filter((file) => {
             // Get the time of the file based on the base timeField option
-            const fileDate = moment(file.stat[baseTimeField]);
+            const fileDate = moment(file.stat[rangeField]);
 
             return this.isDateInRange(fileDate, now);
         });
