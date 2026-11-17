@@ -44,7 +44,8 @@
         customRange: customRange,
         app: plugin.app,
         timeField: timeField,
-        hideFutureDates: plugin.settings.hideFutureDates
+        hideFutureDates: plugin.settings.hideFutureDates,
+        hideEmptyNotes: plugin.settings.hideEmptyNotes
     } as FileManagerOptions;
 
     $: if (fileManager && (settingsVersion !== appliedSettingsVersion ||
@@ -60,7 +61,8 @@
             mode: selectionMode,
             target: target,
             timeField: timeField,
-            hideFutureDates: plugin.settings.hideFutureDates
+            hideFutureDates: plugin.settings.hideFutureDates,
+            hideEmptyNotes: plugin.settings.hideEmptyNotes
         });
         
         // Reset rendered files and start filling viewport again
@@ -70,6 +72,7 @@
         hasMore = filteredFiles.length > 0;
         firstLoaded = true;
         startFillViewport();
+        resolveEmptyNotes();
         
         // Update the title element with the new range information
         updateTitleElement();
@@ -80,7 +83,8 @@
         filteredFiles = fileManager.getFilteredFiles();
         hasMore = filteredFiles.length > 0;
         startFillViewport();
-        
+        resolveEmptyNotes();
+
         // Initialize the title element
         updateTitleElement();
     });
@@ -257,7 +261,44 @@
             visibleNotes = visibleNotes;
         }
     }
+
+    export function fileModify(file: TFile) {
+        // Only notes hidden because they were empty need a second look
+        void recheckNote(file);
+    }
     
+    // Rebuild the lazily rendered list, keeping the scroll offset in place
+    function rebuildList() {
+        const scroller = leaf.view.contentEl;
+        const scrollTop = scroller?.scrollTop ?? 0;
+
+        renderedFiles = [];
+        visibleNotes.clear();
+        filteredFiles = fileManager.getFilteredFiles();
+        hasMore = filteredFiles.length > 0;
+        firstLoaded = true;
+        startFillViewport();
+
+        window.requestAnimationFrame(() => {
+            if (scroller) scroller.scrollTop = scrollTop;
+        });
+    }
+
+    // Work out which daily notes are empty and rebuild only if that changed
+    async function resolveEmptyNotes() {
+        if (!fileManager) return;
+
+        const changed = await fileManager.refreshEmptyStates();
+        if (changed) rebuildList();
+    }
+
+    export async function recheckNote(file: TFile) {
+        if (!fileManager) return;
+
+        const changed = await fileManager.recheckFile(file);
+        if (changed) rebuildList();
+    }
+
     // Handle note visibility change
     function handleNoteVisibilityChange(file: TFile, isVisible: boolean) {
         console.log("inview", isVisible)

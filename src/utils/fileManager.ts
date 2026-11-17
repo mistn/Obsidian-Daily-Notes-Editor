@@ -15,6 +15,7 @@ export interface FileManagerOptions {
     app?: App;
     timeField?: TimeField;
     hideFutureDates?: boolean;
+    hideEmptyNotes?: boolean;
 }
 
 export class FileManager {
@@ -23,6 +24,10 @@ export class FileManager {
     private hasFetched: boolean = false;
     private hasCurrentDay: boolean = true;
     private cacheDailyNotes: Record<string, any> = {};
+
+    /** Paths of daily notes whose body is blank (checked asynchronously) */
+    private emptyPaths: Set<string> = new Set();
+    private emptyCheckToken = 0;
 
     // Make options public so it can be accessed from outside
     public options: FileManagerOptions;
@@ -176,6 +181,12 @@ export class FileManager {
             (file) => !this.isFutureDailyNote(file)
         );
 
+        if (this.options.hideEmptyNotes && this.options.mode === "daily") {
+            this.filteredFiles = this.filteredFiles.filter(
+                (file) => !this.emptyPaths.has(file.path)
+            );
+        }
+
         return this.filteredFiles;
     }
 
@@ -189,6 +200,122 @@ export class FileManager {
 
         const fileDate = getDateFromFile(file as any, "day");
         return !!fileDate && fileDate.isAfter(moment(), "day");
+    }
+
+    /**
+     * Cheap structural check: if the cache knows about any block, heading, link,
+     * tag or block reference, the note definitely has content. Only the notes
+     * that pass this check are read from disk to look for plain text.
+     */
+    private looksLikeItHasContent(file: TFile): boolean {
+        const cache = this.options.app?.metadataCache.getFileCache(file);
+        // Not indexed yet: assume content rather than hiding the note
+        if (!cache) return true;
+
+        // Sections are root level markdown blocks; a note whose body is blank
+        // has none (the frontmatter block itself is not content)
+        const bodySections = (cache.sections ?? []).filter(
+            (section) => section.type !== "yaml"
+        );
+
+        return Boolean(
+            bodySections.length ||
+                cache.headings?.length ||
+                cache.links?.length ||
+                cache.embeds?.length ||
+                cache.listItems?.length ||
+                cache.tags?.length ||
+                cache.footnotes?.length ||
+                cache.footnoteRefs?.length ||
+                Object.keys(cache.blocks ?? {}).length
+        );
+    }
+
+    private isBlankBody(file: TFile, text: string): boolean {
+        const cache = this.options.app?.metadataCache.getFileCache(file);
+        const frontmatterEnd = cache?.frontmatterPosition?.end?.offset;
+        const body =
+            frontmatterEnd === undefined ? text : text.slice(frontmatterEnd + 1);
+        return body.trim().length === 0;
+    }
+
+    private async computeIsEmpty(file: TFile): Promise<boolean> {
+        if (!this.options.app) return false;
+        if (this.looksLikeItHasContent(file)) return false;
+
+        try {
+            const text = await this.options.app.vault.cachedRead(file);
+            return this.isBlankBody(file, text);
+        } catch (error) {
+            console.error("Failed to check daily note content:", error);
+            return false;
+        }
+    }
+
+    /**
+     * Resolve which daily notes have an empty body.
+     * Returns true when the result differs from the previous pass, so the view
+     * knows it has to rebuild its list.
+     */
+    public async refreshEmptyStates(): Promise<boolean> {
+        const enabled =
+            !!this.options.hideEmptyNotes && this.options.mode === "daily";
+
+        if (!enabled) {
+            const changed = this.emptyPaths.size > 0;
+            this.emptyPaths.clear();
+            return changed;
+        }
+
+        const token = ++this.emptyCheckToken;
+        const next = new Set<string>();
+
+        // Only notes that look structurally empty are actually read from disk,
+        // and they are read in small batches to keep large vaults responsive
+        const candidates = this.allFiles.filter(
+            (file) => !this.looksLikeItHasContent(file)
+        );
+
+        for (let i = 0; i < candidates.length; i += 50) {
+            const chunk = candidates.slice(i, i + 50);
+            const results = await Promise.all(
+                chunk.map((file) => this.computeIsEmpty(file))
+            );
+            if (token !== this.emptyCheckToken) return false; // superseded
+            results.forEach((isEmpty, index) => {
+                if (isEmpty) next.add(chunk[index].path);
+            });
+        }
+
+        const changed =
+            next.size !== this.emptyPaths.size ||
+            [...next].some((path) => !this.emptyPaths.has(path));
+
+        this.emptyPaths = next;
+
+        if (changed) this.filterFilesByRange();
+
+        return changed;
+    }
+
+    /**
+     * Re-check a single note after it was modified. Only handles the
+     * empty -> non-empty transition: a note being emptied while you type in it
+     * should not vanish under the cursor.
+     */
+    public async recheckFile(file: TFile): Promise<boolean> {
+        if (!this.options.hideEmptyNotes || this.options.mode !== "daily") {
+            return false;
+        }
+        if (!this.emptyPaths.has(file.path)) return false;
+        if (!this.allFiles.some((f) => f.path === file.path)) return false;
+
+        const isEmpty = await this.computeIsEmpty(file);
+        if (isEmpty) return false;
+
+        this.emptyPaths.delete(file.path);
+        this.filterFilesByRange();
+        return true;
     }
 
     /**
@@ -402,6 +529,8 @@ export class FileManager {
     }
 
     public fileDelete(file: TFile): void {
+        this.emptyPaths.delete(file.path);
+
         // Match on path: basenames are not unique across folders
         this.filteredFiles = this.filteredFiles.filter(
             (f) => f.path !== file.path
@@ -452,13 +581,19 @@ export class FileManager {
     public updateOptions(options: Partial<FileManagerOptions>): void {
         this.options = { ...this.options, ...options };
 
-        if (options.timeRange || options.customRange || options.hideFutureDates !== undefined) {
+        if (
+            options.timeRange ||
+            options.customRange ||
+            options.hideFutureDates !== undefined ||
+            options.hideEmptyNotes !== undefined
+        ) {
             this.filterFilesByRange();
         }
 
         if (options.mode || options.target) {
             this.allFiles = [];
             this.filteredFiles = [];
+            this.emptyPaths.clear();
             this.hasFetched = false;
             this.fetchFiles();
         }

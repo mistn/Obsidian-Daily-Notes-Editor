@@ -7,6 +7,7 @@ export interface DailyNoteSettings {
     createAndOpenOnStartup: boolean;
     useArrowUpOrDownToNavigate: boolean;
     hideFutureDates: boolean;
+    hideEmptyNotes: boolean;
     autoFocus: boolean;
     switchToExisting: boolean;
 
@@ -22,6 +23,7 @@ export const DEFAULT_SETTINGS: DailyNoteSettings = {
     createAndOpenOnStartup: false,
     useArrowUpOrDownToNavigate: false,
     hideFutureDates: false,
+    hideEmptyNotes: false,
     autoFocus: false,
     switchToExisting: false,
     preset: [],
@@ -162,6 +164,21 @@ export class DailyNoteSettingTab extends PluginSettingTab {
                     .setValue(settings.hideFutureDates)
                     .onChange(async (value) => {
                         this.plugin.settings.hideFutureDates = value;
+                        this.applySettingsUpdate();
+                        this.plugin.refreshAllViews();
+                    })
+            );
+
+        new Setting(containerEl)
+            .setName("Hide empty daily notes")
+            .setDesc(
+                "Hide daily notes that have no content besides their frontmatter (daily notes mode only)"
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(settings.hideEmptyNotes)
+                    .onChange(async (value) => {
+                        this.plugin.settings.hideEmptyNotes = value;
                         this.applySettingsUpdate();
                         this.plugin.refreshAllViews();
                     })

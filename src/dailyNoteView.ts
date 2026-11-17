@@ -81,6 +81,10 @@ export class DailyNoteView extends ItemView {
         if (file instanceof TFile) this.view.fileDelete(file);
     };
 
+    onFileModify = (file: TAbstractFile) => {
+        if (file instanceof TFile) this.view.fileModify(file);
+    };
+
     setSelectedRange(range: TimeRange) {
         this.selectedDaysRange = range;
         if (this.view) {
@@ -371,6 +375,7 @@ export class DailyNoteView extends ItemView {
 
         this.app.vault.on("create", this.onFileCreate);
         this.app.vault.on("delete", this.onFileDelete);
+        this.app.vault.on("modify", this.onFileModify);
     }
 
     onPaneMenu(
