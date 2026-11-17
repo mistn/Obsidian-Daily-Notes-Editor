@@ -281,8 +281,12 @@
     }
 
     .daily-note:has(.is-readable-line-width) .daily-note-title {
-        max-width: calc(var(--file-line-width) + var(--size-4-4));
-        width: calc(var(--file-line-width) + var(--size-4-4));
+        /* Match the editor's content box: a 700px column plus the scroller's
+           32px horizontal padding. A fixed 716px width overflowed panes
+           narrower than that, which left the title at the pane edge while the
+           text stayed 32px in. */
+        width: calc(100% - var(--file-margins-x, var(--size-4-8)) * 2);
+        max-width: var(--file-line-width);
         margin-left: auto;
         margin-right: auto;
         margin-bottom: var(--size-4-8);
@@ -308,8 +312,9 @@
         justify-content: start;
         align-items: center;
         width: 100%;
-        padding-left: calc(calc(100% - var(--file-line-width)) / 2 - var(--size-4-2));
-        padding-right: calc(calc(100% - var(--file-line-width)) / 2 - var(--size-4-2));
+        padding-left: var(--file-margins-x, var(--size-4-8));
+        padding-right: var(--file-margins-x, var(--size-4-8));
+        box-sizing: border-box;
         margin-top: var(--size-4-8);
 
         gap: var(--size-4-2);
