@@ -57,7 +57,8 @@
 }
 
 .dn-editor .cm-scroller {
-    padding: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
     overflow-y: clip;
     -webkit-mask: none !important;
     -webkit-mask-image: none !important;
