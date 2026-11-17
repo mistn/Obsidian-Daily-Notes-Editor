@@ -6,8 +6,6 @@ import terser from '@rollup/plugin-terser';
 import replace from '@rollup/plugin-replace';
 import resolve from '@rollup/plugin-node-resolve';
 
-const prod = (process.argv[4] === 'production');
-
 export default defineConfig(({mode}) => {
     return {
         plugins: [
