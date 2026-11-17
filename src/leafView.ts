@@ -9,6 +9,7 @@ import {
     MarkdownEditView,
     OpenViewState,
     parseLinktext,
+    Platform,
     PopoverState,
     requireApiVersion,
     resolveSubpath,
@@ -191,6 +192,12 @@ export class DailyNoteEditor extends nosuper(HoverPopover) {
     }
 
     _setActive(evt: MouseEvent) {
+        // A tap on mobile arrives as a synthesized mousedown. Calling
+        // preventDefault() here cancels the browser's focus and caret
+        // handling, which is why tapping a note did nothing and only a long
+        // press started editing. Let the editor handle the tap itself.
+        if (Platform.isMobile) return;
+
         evt.preventDefault();
         evt.stopPropagation();
         this.plugin.app.workspace.setActiveLeaf(this.leaves()[0], {focus: true});

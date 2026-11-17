@@ -1,6 +1,6 @@
 <script lang="ts">
     import type DailyNoteViewPlugin from "../dailyNoteViewIndex";
-    import { MarkdownView, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
+    import { MarkdownView, Platform, TAbstractFile, TFile, WorkspaceLeaf } from "obsidian";
     import { spawnLeafView } from "../leafView";
     import { onDestroy, onMount } from "svelte";
 
@@ -178,7 +178,11 @@
     function handleEditorClick() {
         // @ts-ignore
         const editor = createdLeaf?.view?.editMode?.editor;
-        if (editor && !editor.hasFocus()) {
+        if (!editor) return;
+
+        // On mobile the keyboard can be dismissed while the editor still
+        // reports focus, so re-focus on every tap
+        if (Platform.isMobile || !editor.hasFocus()) {
             editor.focus();
         }
     }
