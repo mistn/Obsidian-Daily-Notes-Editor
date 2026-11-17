@@ -1,11 +1,9 @@
-import { TFile, moment, App } from "obsidian";
+import { TFile, moment, App, getAllTags } from "obsidian";
 import {
     getAllDailyNotes,
     getDailyNote,
     createDailyNote,
     getDateFromFile,
-    getDailyNoteSettings,
-    DEFAULT_DAILY_NOTE_FORMAT,
 } from "obsidian-daily-notes-interface";
 import { TimeRange, TimeField } from "../types/time";
 
@@ -100,38 +98,9 @@ export class FileManager {
 
     private fetchDailyNotes(): void {
         this.cacheDailyNotes = getAllDailyNotes();
-
-        // Convert the object to an array of files
-        const notes = Object.values(this.cacheDailyNotes) as TFile[];
-
-        // Sort based on the selected time field
-        const { isReverse, baseTimeField } = this.parseTimeField(
-            this.options.timeField
+        this.allFiles = this.sortDailyNotes(
+            Object.values(this.cacheDailyNotes) as TFile[]
         );
-
-        if (baseTimeField === "name") {
-            // For name-based sorting, sort by filename
-            this.allFiles = [...notes].sort((a, b) => {
-                const result = a.name.localeCompare(b.name);
-                return isReverse ? -result : result;
-            });
-        } else {
-            // Default sorting (by date in the filename)
-            // Build notes list by date in descending order
-            for (const string of Object.keys(this.cacheDailyNotes)
-                .sort()
-                .reverse()) {
-                this.allFiles.push(<TFile>this.cacheDailyNotes[string]);
-            }
-
-            // Apply additional time-based sorting if needed
-            if (baseTimeField !== "ctime" && baseTimeField !== "mtime") {
-                this.allFiles = this.sortFilesByTimeField(
-                    this.allFiles,
-                    this.options.timeField
-                );
-            }
-        }
     }
 
     private fetchFolderFiles(): void {
@@ -159,20 +128,9 @@ export class FileManager {
     private fetchTaggedFiles(): void {
         if (!this.options.target || !this.options.app) return;
 
-        // Get all files with the specified tag
-        const allFiles = this.options.app.vault.getMarkdownFiles();
-        const targetTag = this.options.target.startsWith("#")
-            ? this.options.target
-            : "#" + this.options.target;
-
-        this.allFiles = allFiles.filter((file) => {
-            // Check if the file has the target tag in its cache
-            const fileCache =
-                this.options.app?.metadataCache.getFileCache(file);
-            if (!fileCache || !fileCache.tags) return false;
-
-            return fileCache.tags.some((tag) => tag.tag === targetTag);
-        });
+        this.allFiles = this.options.app.vault
+            .getMarkdownFiles()
+            .filter((file) => this.hasTargetTag(file));
 
         // Sort files by the specified time field
         this.allFiles = this.sortFilesByTimeField(
@@ -181,18 +139,29 @@ export class FileManager {
         );
     }
 
+    /**
+     * getAllTags covers inline tags plus frontmatter tags in string or list form
+     */
+    private hasTargetTag(file: TFile): boolean {
+        if (!this.options.target) return false;
+
+        const cache = this.options.app?.metadataCache.getFileCache(file);
+        if (!cache) return false;
+
+        // Obsidian tags are case-insensitive
+        const targetTag = (
+            "#" + this.options.target.replace(/^#/, "")
+        ).toLowerCase();
+
+        return (
+            getAllTags(cache)?.some((tag) => tag.toLowerCase() === targetTag) ??
+            false
+        );
+    }
+
     public filterFilesByRange(): TFile[] {
-        // If no time range is specified, return all files
-        if (!this.options.timeRange) {
-            this.filteredFiles = [...this.allFiles];
-            return this.filteredFiles;
-        }
-
-        // Reset the filtered files list
-        this.filteredFiles = [];
-
-        // If the time range is "all", return all files
-        if (this.options.timeRange === "all") {
+        // No time range or "all" means no filtering
+        if (!this.options.timeRange || this.options.timeRange === "all") {
             this.filteredFiles = [...this.allFiles];
             return this.filteredFiles;
         }
@@ -239,13 +208,11 @@ export class FileManager {
      */
     private filterDailyNotesByRange(): void {
         const now = moment();
-        const fileFormat =
-            getDailyNoteSettings().format || DEFAULT_DAILY_NOTE_FORMAT;
 
+        // getDateFromFile handles formats with folder segments (e.g. YYYY/MM/YYYY-MM-DD)
         this.filteredFiles = this.allFiles.filter((file) => {
-            const fileDate = moment(file.basename, fileFormat);
-
-            return this.isDateInRange(fileDate, now);
+            const fileDate = getDateFromFile(file as any, "day");
+            return !!fileDate && this.isDateInRange(fileDate, now);
         });
     }
 
@@ -373,40 +340,11 @@ export class FileManager {
 
     private handleDailyNoteCreate(file: TFile): void {
         const fileDate = getDateFromFile(file as any, "day");
-        const fileFormat =
-            getDailyNoteSettings().format || DEFAULT_DAILY_NOTE_FORMAT;
         if (!fileDate) return;
 
-        if (this.filteredFiles.length === 0) {
-            this.allFiles.push(file);
-            this.allFiles = this.sortDailyNotes(this.allFiles);
-            this.filterFilesByRange();
-            return;
-        }
-
-        const lastFilteredFile =
-            this.filteredFiles[this.filteredFiles.length - 1];
-        const firstFilteredFile = this.filteredFiles[0];
-        const lastFilteredFileDate = moment(
-            lastFilteredFile.basename,
-            fileFormat
-        );
-        const firstFilteredFileDate = moment(
-            firstFilteredFile.basename,
-            fileFormat
-        );
-
-        if (fileDate.isBetween(lastFilteredFileDate, firstFilteredFileDate)) {
-            this.filteredFiles.push(file);
-            this.filteredFiles = this.sortDailyNotes(this.filteredFiles);
-        } else if (fileDate.isBefore(lastFilteredFileDate)) {
-            this.allFiles.push(file);
-            this.allFiles = this.sortDailyNotes(this.allFiles);
-            this.filterFilesByRange();
-        } else if (fileDate.isAfter(firstFilteredFileDate)) {
-            this.filteredFiles.push(file);
-            this.filteredFiles = this.sortDailyNotes(this.filteredFiles);
-        }
+        this.allFiles.push(file);
+        this.allFiles = this.sortDailyNotes(this.allFiles);
+        this.filterFilesByRange();
 
         if (fileDate.isSame(moment(), "day")) this.hasCurrentDay = true;
     }
@@ -435,83 +373,63 @@ export class FileManager {
     }
 
     private handleTaggedFileCreate(file: TFile): void {
-        if (!this.options.target || !this.options.app) return;
+        if (!this.hasTargetTag(file)) return;
 
-        // Check if the file has the target tag
-        const targetTag = this.options.target.startsWith("#")
-            ? this.options.target
-            : "#" + this.options.target;
+        // Add the file to the collections
+        this.allFiles.push(file);
 
-        const fileCache = this.options.app.metadataCache.getFileCache(file);
-        if (!fileCache || !fileCache.tags) return;
+        // Sort files by the specified time field
+        this.allFiles = this.sortFilesByTimeField(
+            this.allFiles,
+            this.options.timeField
+        );
 
-        if (fileCache.tags.some((tag) => tag.tag === targetTag)) {
-            // Add the file to the collections
-            this.allFiles.push(file);
-
-            // Sort files by the specified time field
-            this.allFiles = this.sortFilesByTimeField(
-                this.allFiles,
-                this.options.timeField
-            );
-
-            // Update filtered files
-            this.filterFilesByRange();
-        }
+        // Update filtered files
+        this.filterFilesByRange();
     }
 
     public fileDelete(file: TFile): void {
+        // Match on path: basenames are not unique across folders
+        this.filteredFiles = this.filteredFiles.filter(
+            (f) => f.path !== file.path
+        );
+        this.allFiles = this.allFiles.filter((f) => f.path !== file.path);
+
         if (
             this.options.mode === "daily" &&
             getDateFromFile(file as any, "day")
         ) {
-            this.filteredFiles = this.filteredFiles.filter((f) => {
-                return f.basename !== file.basename;
-            });
-            this.allFiles = this.allFiles.filter((f) => {
-                return f.basename !== file.basename;
-            });
             this.filterFilesByRange();
             this.checkDailyNote();
-        } else {
-            // Handle deletion for folder and tag modes
-            this.filteredFiles = this.filteredFiles.filter((f) => {
-                return f.basename !== file.basename;
-            });
-            this.allFiles = this.allFiles.filter((f) => {
-                return f.basename !== file.basename;
-            });
         }
     }
 
     private sortDailyNotes(notes: TFile[]): TFile[] {
-        // Sort daily notes by date (newest first by default)
-        // For this, we're using the file name which follows the daily note format
-        const { isReverse, baseTimeField } = this.parseTimeField(
-            this.options.timeField
-        );
-
         // If sorting by name, use alphabetical sorting which will automatically
         // sort chronologically for date-formatted filenames
+        const { baseTimeField } = this.parseTimeField(this.options.timeField);
+
         if (baseTimeField === "name") {
-            return [...notes].sort((a, b) => {
-                if (isReverse) {
-                    return b.name.localeCompare(a.name);
-                }
-                return a.name.localeCompare(b.name);
-            });
+            return this.sortFilesByTimeField(
+                notes,
+                this.options.timeField
+            );
         }
 
-        // Otherwise use the normal time-based sorting
-        return this.sortFilesByTimeField(notes, this.options.timeField);
-    }
-
-    public getAllFiles(): TFile[] {
-        return this.allFiles;
+        // Canonical order: newest date first, taken from the file's own date
+        // rather than from a rebuilt copy of the filename, so formats with
+        // folder segments (YYYY/MM/YYYY-MM-DD) sort correctly too.
+        return [...notes].sort(
+            (a, b) =>
+                (getDateFromFile(b as any, "day")?.valueOf() ?? 0) -
+                (getDateFromFile(a as any, "day")?.valueOf() ?? 0)
+        );
     }
 
     public getFilteredFiles(): TFile[] {
-        return this.filteredFiles;
+        // Return a copy: callers drain their list with splice() while lazily
+        // rendering, which must not mutate the manager's internal state
+        return [...this.filteredFiles];
     }
 
     public hasCurrentDayNote(): boolean {
