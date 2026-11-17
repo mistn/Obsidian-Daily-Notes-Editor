@@ -20,7 +20,7 @@ export function isEmebeddedLeaf(leaf: WorkspaceLeaf) {
 }
 
 export class DailyNoteView extends ItemView {
-    view: DailyNoteEditorView;
+    view: DailyNoteEditorView | null = null;
     plugin: DailyNoteViewPlugin;
     scope: Scope;
 
@@ -74,15 +74,15 @@ export class DailyNoteView extends ItemView {
     }
 
     onFileCreate = (file: TAbstractFile) => {
-        if (file instanceof TFile) this.view.fileCreate(file);
+        if (file instanceof TFile) this.view?.fileCreate(file);
     };
 
     onFileDelete = (file: TAbstractFile) => {
-        if (file instanceof TFile) this.view.fileDelete(file);
+        if (file instanceof TFile) this.view?.fileDelete(file);
     };
 
     onFileModify = (file: TAbstractFile) => {
-        if (file instanceof TFile) this.view.fileModify(file);
+        if (file instanceof TFile) this.view?.fileModify(file);
     };
 
     setSelectedRange(range: TimeRange) {
@@ -163,7 +163,7 @@ export class DailyNoteView extends ItemView {
             if (customState.customRange)
                 this.customRange = customState.customRange;
 
-            this.view = new DailyNoteEditorView({
+            const view = new DailyNoteEditorView({
                 target: this.contentEl,
                 props: {
                     plugin: this.plugin,
@@ -176,12 +176,13 @@ export class DailyNoteView extends ItemView {
                     settingsVersion: this.settingsVersion,
                 },
             });
+            this.view = view;
 
-            this.app.workspace.onLayoutReady(this.view.tick.bind(this));
+            this.app.workspace.onLayoutReady(view.tick.bind(this));
 
             this.registerInterval(
-                window.setInterval(async () => {
-                    this.view.check();
+                window.setInterval(() => {
+                    this.view?.check();
                 }, 1000 * 60 * 60)
             );
         }
@@ -373,9 +374,21 @@ export class DailyNoteView extends ItemView {
             }
         });
 
-        this.app.vault.on("create", this.onFileCreate);
-        this.app.vault.on("delete", this.onFileDelete);
-        this.app.vault.on("modify", this.onFileModify);
+        this.registerEvent(this.app.vault.on("create", this.onFileCreate));
+        this.registerEvent(this.app.vault.on("delete", this.onFileDelete));
+        this.registerEvent(this.app.vault.on("modify", this.onFileModify));
+    }
+
+    /**
+     * Closing a tab only calls onClose; the component is not unloaded until the
+     * plugin is. Without this, every editor that had ever been opened kept its
+     * Svelte component, its FileManager and its fill interval alive, and the
+     * vault listeners above kept calling into the dead component.
+     */
+    async onClose(): Promise<void> {
+        this.view?.$destroy();
+        this.view = null;
+        await super.onClose();
     }
 
     onPaneMenu(

@@ -7,7 +7,7 @@
     import DailyNote from "./DailyNote.svelte";
     import { inview } from "svelte-inview";
     import { TimeRange, SelectionMode, TimeField } from "../types/time";
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { FileManager, FileManagerOptions } from "../utils/fileManager";
 
 
@@ -33,6 +33,10 @@
     let hasMore = true;
     let firstLoaded = true;
     let loaderRef: HTMLDivElement;
+
+    // Set when the component is destroyed, so the fill interval and the
+    // recursive ensureViewFilled() timeouts stop touching a detached DOM
+    let destroyed = false;
 
     // Create the file manager
     let fileManager: FileManager;
@@ -89,6 +93,11 @@
         updateTitleElement();
     });
 
+    onDestroy(() => {
+        destroyed = true;
+        stopFillViewport();
+    });
+
     // Function to update the title element with range information
     function updateTitleElement() {
         if (!leaf || !leaf.view || !leaf.view.titleEl) return;
@@ -128,6 +137,7 @@
     }
 
     function startFillViewport() {
+        if (destroyed) return;
         if (!intervalId) {
             intervalId = setInterval(infiniteHandler, 1);
         }
@@ -139,6 +149,7 @@
     }
 
     function infiniteHandler() {
+        if (destroyed) return;
         if (leaf.height === 0) return;
         if (!fileManager || !hasMore) return;
         if (filteredFiles.length === 0) {
@@ -158,7 +169,7 @@
     }
 
     function ensureViewFilled() {
-        if (!loaderRef) return;
+        if (destroyed || !loaderRef) return;
         
         // Get the loader element's position
         const loaderRect = loaderRef.getBoundingClientRect();
@@ -178,7 +189,7 @@
             
             // Recursively check again after a short delay to ensure the view is filled
             window.setTimeout(() => {
-                if (hasMore && loaderRef && loaderRef.getBoundingClientRect().top < effectiveHeight) {
+                if (!destroyed && hasMore && loaderRef && loaderRef.getBoundingClientRect().top < effectiveHeight) {
                     ensureViewFilled();
                 }
             }, 50);
@@ -187,7 +198,9 @@
 
     async function createNewDailyNote() {
         const newNote = await fileManager.createNewDailyNote();
-        if (newNote) {
+        // The vault 'create' event can have rendered this note already, and a
+        // duplicate path breaks the keyed each block
+        if (newNote && !renderedFiles.some((f) => f.path === newNote.path)) {
             renderedFiles = [newNote, ...renderedFiles];
             // Automatically mark the new note as visible
             visibleNotes.add(newNote.path);

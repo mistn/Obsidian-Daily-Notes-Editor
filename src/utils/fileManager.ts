@@ -458,8 +458,12 @@ export class FileManager {
         const currentDailyNote: any = await createDailyNote(currentDate);
 
         if (currentDailyNote) {
-            this.allFiles.push(currentDailyNote);
-            this.allFiles = this.sortDailyNotes(this.allFiles);
+            // The vault 'create' event may already have added this file while
+            // createDailyNote() was in flight
+            if (!this.allFiles.some((f) => f.path === currentDailyNote.path)) {
+                this.allFiles.push(currentDailyNote);
+                this.allFiles = this.sortDailyNotes(this.allFiles);
+            }
             this.hasCurrentDay = true;
             this.filterFilesByRange();
             return currentDailyNote;
@@ -482,9 +486,15 @@ export class FileManager {
         const fileDate = getDateFromFile(file as any, "day");
         if (!fileDate) return;
 
-        this.allFiles.push(file);
-        this.allFiles = this.sortDailyNotes(this.allFiles);
-        this.filterFilesByRange();
+        // The vault 'create' event also fires for notes this plugin creates
+        // itself through createNewDailyNote(), so the same file can arrive
+        // twice. A duplicated entry becomes a duplicated key in the view's
+        // keyed each block, which stops the whole list from rendering.
+        if (!this.allFiles.some((f) => f.path === file.path)) {
+            this.allFiles.push(file);
+            this.allFiles = this.sortDailyNotes(this.allFiles);
+            this.filterFilesByRange();
+        }
 
         if (fileDate.isSame(moment(), "day")) this.hasCurrentDay = true;
     }
@@ -498,6 +508,8 @@ export class FileManager {
             folderPath === this.options.target ||
             folderPath.startsWith(this.options.target + "/")
         ) {
+            if (this.allFiles.some((f) => f.path === file.path)) return;
+
             // Add the file to the collections
             this.allFiles.push(file);
 
@@ -514,6 +526,7 @@ export class FileManager {
 
     private handleTaggedFileCreate(file: TFile): void {
         if (!this.hasTargetTag(file)) return;
+        if (this.allFiles.some((f) => f.path === file.path)) return;
 
         // Add the file to the collections
         this.allFiles.push(file);
