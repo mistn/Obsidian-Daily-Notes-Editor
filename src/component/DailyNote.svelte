@@ -180,6 +180,15 @@
             editor.focus();
         }
     }
+
+    // Keep Escape from bubbling up to Obsidian's "switch tab / leave editor"
+    // handler. Bubble phase on purpose: CodeMirror's own Escape bindings
+    // (hints, selections) have already run by the time we see the event.
+    function handleEditorKeydown(event: KeyboardEvent) {
+        if (event.key === "Escape" && !event.defaultPrevented) {
+            event.stopPropagation();
+        }
+    }
     
     // Toggle collapse/expand state
     function toggleCollapse() {
@@ -205,7 +214,7 @@
                 
             </div>
         {/if}
-        <div class="daily-note-editor" data-collapsed={isCollapsed} aria-hidden="true" bind:this={editorEl} data-title={title} on:click={handleEditorClick}>
+        <div class="daily-note-editor" data-collapsed={isCollapsed} aria-hidden="true" bind:this={editorEl} data-title={title} on:click={handleEditorClick} on:keydown={handleEditorKeydown}>
             {#if !rendered && shouldRender}
                 <div class="editor-placeholder">Loading...</div>
             {/if}
