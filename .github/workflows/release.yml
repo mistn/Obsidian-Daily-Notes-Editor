@@ -29,7 +29,8 @@ jobs:
 
             - uses: actions/setup-node@v4
               with:
-                  node-version: 20
+                  # obsidian-daily-notes-interface declares engines: node >=22.9
+                  node-version: 22
                   cache: pnpm
 
             - name: Install dependencies

@@ -80,10 +80,6 @@
     height: 0px;
 }
 
-.daily-note-view .dn-range-indicator + .daily-note-container::before {
-    height: 0px;
-}
-
 .is-popout-window .dn-editor .dn-content {
     margin: 0;
     border-radius: var(--he-popover-border-radius);

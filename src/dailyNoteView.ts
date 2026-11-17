@@ -15,11 +15,6 @@ import { TimeRange, TimeField } from "./types/time";
 import DailyNoteEditorView from "./component/DailyNoteEditorView.svelte";
 export const DAILY_NOTE_VIEW_TYPE = "daily-note-editor-view";
 
-export function isEmebeddedLeaf(leaf: WorkspaceLeaf) {
-    // Work around missing enhance.js API by checking match condition instead of looking up parent
-    return (leaf as any).containerEl.matches(".dn-leaf-view");
-}
-
 export class DailyNoteView extends ItemView {
     view: DailyNoteEditorView | null = null;
     plugin: DailyNoteViewPlugin;

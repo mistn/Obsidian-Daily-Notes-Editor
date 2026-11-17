@@ -188,7 +188,7 @@
         const viewportHeight = window.innerHeight;
         
         // Get the content element's height (with fallback)
-        const contentHeight = leaf.view.contentEl.clientHeight || leaf.view.contentEl.innerHeight || viewportHeight;
+        const contentHeight = leaf.view.contentEl.clientHeight || viewportHeight;
         
         // Use the maximum of viewport height and content height with a buffer
         const effectiveHeight = Math.max(viewportHeight, contentHeight) + 200;
@@ -328,7 +328,6 @@
 
     // Handle note visibility change
     function handleNoteVisibilityChange(file: TFile, isVisible: boolean) {
-        console.log("inview", isVisible)
         if (isVisible) {
             visibleNotes.add(file.path);
         } else {

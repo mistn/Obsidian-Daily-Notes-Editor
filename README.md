@@ -23,13 +23,16 @@ A plugin for you to edit a bunch of daily notes in one page(inline), which works
     -   Folder mode - view all notes from a specific folder
     -   Tag mode - view all notes with a specific tag
 -   Sort options:
-    -   Sort by creation time (newest/oldest first)
-    -   Sort by modification time (newest/oldest first)
+    -   Sort by creation time (newest/oldest first) in folder and tag modes
+    -   Sort by modification time (newest/oldest first) in folder and tag modes
+    -   Sort by name (A-Z / Z-A)
+    -   Daily notes are always ordered by the date in their filename
 -   Customization options:
     -   Hide frontmatter in daily notes
     -   Hide backlinks in daily notes
     -   Create and open Daily Notes Editor on startup
     -   Hide daily notes dated after today
+    -   Hide daily notes that are empty apart from their frontmatter
     -   Auto focus today's note and put the cursor at the end of it
     -   Reuse an already open editor instead of opening a new tab
 -   Save custom presets for quick access to specific folders or tags
@@ -50,6 +53,7 @@ A plugin for you to edit a bunch of daily notes in one page(inline), which works
 -   **Auto focus today's note**: Focus today's note and move the cursor to the end of the document, so you can start typing right away
 -   **Switch to existing editor**: If a Daily Notes Editor is already open, focus it instead of opening a new tab
 -   **Hide future dates**: Hide daily notes dated after today (daily notes mode only)
+-   **Hide empty daily notes**: Hide daily notes that have no content besides their frontmatter (daily notes mode only; today's note is always kept)
 -   **Presets**: Save and manage custom presets for quick access to specific folders or tags
 
 # Usage

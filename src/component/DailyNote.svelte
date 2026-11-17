@@ -32,8 +32,6 @@
         }
     });
 
-    console.log(shouldRender, rendered)
-
     $: if (editorEl && shouldRender && !rendered) {
         showEditor();
     } else if (editorEl && !shouldRender && rendered) {
@@ -62,10 +60,6 @@
         }
 
         try {
-            // Use safe type checking before accessing basename
-            const fileName = file instanceof TFile ? file.basename : "unknown";
-            console.log(`Loading editor for ${fileName}`);
-            
             [createdLeaf] = spawnLeafView(plugin, editorEl, leaf);
             createdLeaf.setPinned(true);
 
@@ -155,10 +149,6 @@
         if (!rendered || !createdLeaf) return;
         
         try {
-            // Use safe type checking before accessing basename
-            const fileName = file instanceof TFile ? file.basename : "unknown";
-            console.log(`Unloading editor for ${fileName}`);
-            
             // Detach the leaf
             if (createdLeaf.detach) {
                 createdLeaf.detach();
@@ -208,7 +198,7 @@
     }
 </script>
 
-<div class="daily-note-container" data-id='dn-editor-{file.path}' bind:this={containerEl} style="min-height: {isCollapsed ? 'auto' : editorHeight + 'px'};">
+<div class="daily-note-container" bind:this={containerEl} style="min-height: {isCollapsed ? 'auto' : editorHeight + 'px'};">
     <div class="daily-note">
         {#if title}
             <div class="daily-note-title inline-title">

@@ -108,14 +108,6 @@ declare module "obsidian" {
         editorEl: HTMLElement;
     }
 
-    class MarkdownPreviewRendererStatic extends MarkdownPreviewRenderer {
-        static registerDomEvents(
-            el: HTMLElement,
-            handlerInstance: unknown,
-            cb: (el: HTMLElement) => unknown
-        ): void;
-    }
-
     interface WorkspaceLeaf {
         openLinkText(
             linkText: string,

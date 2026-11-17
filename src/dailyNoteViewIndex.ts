@@ -29,8 +29,6 @@ import { createUpDownNavigationExtension } from "./component/UpAndDownNavigate";
 import { DAILY_NOTE_VIEW_TYPE, DailyNoteView } from "./dailyNoteView";
 
 export default class DailyNoteViewPlugin extends Plugin {
-    private view: DailyNoteView;
-    lastActiveFile: TFile;
     private lastCheckedDay: string;
 
     // `Plugin` declares an optional `settings?: unknown` property for the
@@ -59,7 +57,7 @@ export default class DailyNoteViewPlugin extends Plugin {
 
         this.registerView(
             DAILY_NOTE_VIEW_TYPE,
-            (leaf: WorkspaceLeaf) => (this.view = new DailyNoteView(leaf, this))
+            (leaf: WorkspaceLeaf) => new DailyNoteView(leaf, this)
         );
 
         this.addRibbonIcon(
@@ -344,7 +342,6 @@ export default class DailyNoteViewPlugin extends Plugin {
 
         if (currentDay !== this.lastCheckedDay) {
             this.lastCheckedDay = currentDay;
-            console.log("Day changed, updating daily notes view");
 
             // Don't create notes behind the user's back: only do it when they
             // opted into the startup behaviour
