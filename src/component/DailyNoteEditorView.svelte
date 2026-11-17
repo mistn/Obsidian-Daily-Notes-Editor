@@ -361,5 +361,8 @@
     
     .daily-note-wrapper {
         width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
 </style>

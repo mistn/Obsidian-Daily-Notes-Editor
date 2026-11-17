@@ -217,9 +217,19 @@
 </div>
 
 <style>
+    .daily-note-container {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
+    }
+
     .daily-note {
         margin-bottom: var(--size-4-5);
         padding-bottom: var(--size-4-8);
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
     }
 
     .daily-note:has(.daily-note-editor[data-collapsed="true"]) {
@@ -229,6 +239,10 @@
 
     .daily-note-editor {
         min-height: 100px;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+        box-sizing: border-box;
     }
 
     .daily-note-editor[data-collapsed="true"] {
