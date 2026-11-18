@@ -211,9 +211,10 @@ export class DailyNoteView extends ItemView {
     }
 
     async onOpen(): Promise<void> {
-        this.scope.register(["Mod"], "f", (e) => {
-            // do-nothing
-        });
+        // Ctrl+F used to be registered here as a no-op, which is why search
+        // did nothing at all (#35). Let it fall through to Obsidian's own
+        // "Search current file" command: the setActiveLeaf patch records the
+        // embedded editor as activeEditor, so the command targets that note.
 
         this.addAction("clock", "Select time field", (e) => {
             const menu = new Menu();
