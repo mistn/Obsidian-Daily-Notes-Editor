@@ -152,7 +152,14 @@
 
     function infiniteHandler() {
         if (destroyed) return;
-        if (leaf.height === 0) return;
+
+        // leaf.height can stay 0 for the embedded leaf on iOS even while the
+        // view is visible, which stopped the fill loop after the first batch
+        // (#74). Measure the content element instead.
+        const viewHeight =
+            leaf.view?.contentEl?.clientHeight || leaf.height || 0;
+        if (viewHeight === 0) return;
+
         if (!fileManager) return;
 
         if (!hasMore) {
