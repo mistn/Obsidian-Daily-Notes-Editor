@@ -9,6 +9,7 @@
     export let leaf: WorkspaceLeaf;
     export let shouldRender: boolean = true;
     export let autoFocus: boolean = false;
+    export let hideTitle: boolean = false;
 
     let editorEl: HTMLElement;
     let containerEl: HTMLElement;
@@ -210,16 +211,18 @@
 <div class="daily-note-container" bind:this={containerEl} style="min-height: {isCollapsed ? 'auto' : editorHeight + 'px'};">
     <div class="daily-note">
         {#if title}
-            <div class="daily-note-title inline-title">
+            <div class="daily-note-title inline-title" data-title-hidden={hideTitle}>
                 <!-- Collapse/Expand button -->
                 <!-- svelte-ignore a11y-interactive-supports-focus -->
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <span role="button" data-collapsed={isCollapsed} class="collapse-button" on:click={toggleCollapse} title={isCollapsed ? "Expand" : "Collapse"}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-chevron-down"><path d="m6 9 6 6 6-6"/></svg>
                 </span>
-                <!-- svelte-ignore a11y-interactive-supports-focus -->
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <span role="link" class="clickable-link" on:click={handleFileIconClick} data-title={title}>{title}</span>
+                {#if !hideTitle}
+                    <!-- svelte-ignore a11y-interactive-supports-focus -->
+                    <!-- svelte-ignore a11y-click-events-have-key-events -->
+                    <span role="link" class="clickable-link" on:click={handleFileIconClick} data-title={title}>{title}</span>
+                {/if}
                 
                 
                 
@@ -327,6 +330,15 @@
         margin-top: var(--size-4-8);
 
         gap: var(--size-4-2);
+    }
+
+    .daily-note .daily-note-title[data-title-hidden="true"] {
+        /* Keep the row so the collapse button does not shift the note when it
+           appears on hover, but drop the spacing that only existed for the
+           title text */
+        min-height: 24px;
+        margin-top: 0;
+        margin-bottom: 0;
     }
 
     .clickable-link {

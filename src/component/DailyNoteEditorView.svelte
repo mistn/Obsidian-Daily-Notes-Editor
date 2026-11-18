@@ -40,6 +40,10 @@
     // recursive ensureViewFilled() timeouts stop touching a detached DOM
     let destroyed = false;
 
+    // settingsVersion is bumped by the view when a setting changes, so reading
+    // it here makes the list re-render when "hide note title" is toggled
+    $: hideNoteTitle = settingsVersion >= 0 && plugin.settings.hideNoteTitle;
+
     // Create the file manager
     let fileManager: FileManager;
     
@@ -377,6 +381,7 @@
                 leaf={leaf} 
                 shouldRender={visibleNotes.has(file.path)}
                 autoFocus={isToday(file)}
+                hideTitle={hideNoteTitle}
             />
         </div>
     {/each}

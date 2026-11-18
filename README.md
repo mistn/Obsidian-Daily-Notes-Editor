@@ -17,6 +17,7 @@ A plugin for you to edit a bunch of daily notes in one page(inline), which works
     -   You can open it from left ribbon.
 -   View and filter notes by different time ranges:
     -   Week, Month, Year, Quarter
+    -   Past 7 days, Past 30 days
     -   Last Week, Last Month, Last Year, Last Quarter
     -   All notes
     -   Custom date range
@@ -73,6 +74,7 @@ Manual install: download `main.js`, `manifest.json` and `styles.css` from the [l
 
 -   **Hide frontmatter**: Toggle to hide frontmatter in daily notes
 -   **Hide backlinks**: Toggle to hide backlinks in daily notes
+-   **Hide note title**: Hide the date title above each note when the note already contains it
 -   **Create and open Daily Notes Editor on startup**: Automatically create today's daily note and open the Daily Notes Editor when Obsidian starts
 -   **Use arrow up/down key to navigate between notes**: Jump to the previous/next note when the cursor leaves the current one with the arrow keys
 -   **Auto focus today's note**: Focus today's note and move the cursor to the end of the document, so you can start typing right away
