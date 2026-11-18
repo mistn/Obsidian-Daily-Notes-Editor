@@ -192,6 +192,16 @@ export class DailyNoteEditor extends nosuper(HoverPopover) {
     }
 
     _setActive(evt: MouseEvent) {
+        // The properties panel relies on the browser's default mousedown
+        // behaviour to focus its inputs. Cancelling the event here made
+        // frontmatter values impossible to edit (upstream #89).
+        if (
+            evt.target instanceof Element &&
+            evt.target.closest(".metadata-container")
+        ) {
+            return;
+        }
+
         // A tap on mobile arrives as a synthesized mousedown. Calling
         // preventDefault() here cancels the browser's focus and caret
         // handling, which is why tapping a note did nothing and only a long

@@ -175,7 +175,12 @@
         } else plugin.app.workspace.getLeaf(false).openFile(file);
     }
 
-    function handleEditorClick() {
+    function handleEditorClick(event: MouseEvent) {
+        // The properties panel manages its own focus. Pulling focus back to
+        // the editor here made frontmatter values impossible to edit (#89).
+        const target = event.target as HTMLElement | null;
+        if (target?.closest?.(".metadata-container")) return;
+
         // @ts-ignore
         const editor = createdLeaf?.view?.editMode?.editor;
         if (!editor) return;
