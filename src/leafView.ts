@@ -23,6 +23,7 @@ import {
 
 import type DailyNoteViewPlugin from "./dailyNoteViewIndex";
 import { genId } from "./utils/utils";
+import { around } from "monkey-around";
 
 
 export interface DailyNoteEditorParent {
@@ -286,7 +287,24 @@ export class DailyNoteEditor extends nosuper(HoverPopover) {
         this.rootSplit.getContainer = () => DailyNoteEditor.containerForDocument(this.plugin, this.document);
 
         this.titleEl.insertAdjacentElement("afterend", this.rootSplit.containerEl);
-        const leaf = this.plugin.app.workspace.createLeafInParent(this.rootSplit, 0);
+
+        // Obsidian 1.8.7 makes createLeafInParent() activate the new leaf.
+        // This leaf has no parentLeaf yet (it is assigned after this returns),
+        // so our setActiveLeaf redirect does not apply and the activation
+        // escapes to the previously active tab, stealing focus while notes
+        // scroll into view (#72, #78). Suppress activation for this call.
+        const stopActivation = around(this.plugin.app.workspace, {
+            setActiveLeaf() {
+                return () => {};
+            },
+        });
+
+        let leaf!: WorkspaceLeaf;
+        try {
+            leaf = this.plugin.app.workspace.createLeafInParent(this.rootSplit, 0);
+        } finally {
+            stopActivation();
+        }
 
         this.updateLeaves();
         return leaf;
