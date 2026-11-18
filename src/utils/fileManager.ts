@@ -102,9 +102,22 @@ export class FileManager {
         this.filterFilesByRange();
     }
 
+    /**
+     * getAllDailyNotes() also returns non-markdown files whose basename parses
+     * as a date, for example a .doc export sitting in the daily notes folder.
+     * Those would open as empty embedded editors (#48).
+     */
+    private markdownOnly(notes: Record<string, TFile>): Record<string, TFile> {
+        const result: Record<string, TFile> = {};
+        for (const key of Object.keys(notes)) {
+            if (notes[key].extension === "md") result[key] = notes[key];
+        }
+        return result;
+    }
+
     private fetchDailyNotes(): void {
         try {
-            this.cacheDailyNotes = getAllDailyNotes();
+            this.cacheDailyNotes = this.markdownOnly(getAllDailyNotes());
         } catch (error) {
             // The daily notes folder is missing, renamed or the core plugin is
             // off. Throwing here used to abort the FileManager constructor and
@@ -447,7 +460,7 @@ export class FileManager {
 
         // Refresh the daily notes cache to ensure we have the latest data
         try {
-            this.cacheDailyNotes = getAllDailyNotes();
+            this.cacheDailyNotes = this.markdownOnly(getAllDailyNotes());
         } catch {
             // Missing folder: treat it as empty instead of throwing every hour
             this.cacheDailyNotes = {};
@@ -522,6 +535,8 @@ export class FileManager {
     }
 
     private handleDailyNoteCreate(file: TFile): void {
+        if (file.extension !== "md") return;
+
         const fileDate = getDateFromFile(file as any, "day");
         if (!fileDate) return;
 
