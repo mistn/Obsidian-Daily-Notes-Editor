@@ -362,7 +362,7 @@
             </div>
         </div>
     {/if}
-    {#if selectionMode === "daily" && !fileManager?.hasCurrentDayNote() && (selectedRange === 'all' || selectedRange === 'week' || selectedRange === 'month' || selectedRange === 'year' || selectedRange === 'quarter')}
+    {#if selectionMode === "daily" && !fileManager?.hasCurrentDayNote() && (selectedRange === 'all' || selectedRange === 'week' || selectedRange === 'month' || selectedRange === 'year' || selectedRange === 'quarter' || selectedRange === 'past-7-days' || selectedRange === 'past-30-days')}
         <div class="dn-blank-day" on:click={createNewDailyNote} aria-hidden="true">
             <div class="dn-blank-day-text">
                 Create a daily note for today ✍

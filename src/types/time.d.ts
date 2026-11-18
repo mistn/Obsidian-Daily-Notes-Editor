@@ -8,6 +8,8 @@ export type TimeRange =
     | "last-year"
     | "quarter"
     | "last-quarter"
+    | "past-7-days"
+    | "past-30-days"
     | "custom";
 
 export type SelectionMode = "daily" | "folder" | "tag";

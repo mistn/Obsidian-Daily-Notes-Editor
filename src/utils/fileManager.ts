@@ -440,6 +440,15 @@ export class FileManager {
                     null,
                     "[]"
                 );
+            case "past-7-days":
+                // Rolling window that includes today
+                return fileDate.isSameOrAfter(
+                    moment().subtract(6, "days").startOf("day")
+                );
+            case "past-30-days":
+                return fileDate.isSameOrAfter(
+                    moment().subtract(29, "days").startOf("day")
+                );
             case "custom":
                 if (this.options.customRange) {
                     const startDate = moment(this.options.customRange.start);

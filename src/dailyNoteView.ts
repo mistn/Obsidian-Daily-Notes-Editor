@@ -350,6 +350,8 @@ export class DailyNoteView extends ItemView {
             addRangeOption("This Week", "week");
             addRangeOption("This Month", "month");
             addRangeOption("This Year", "year");
+            addRangeOption("Past 7 Days", "past-7-days");
+            addRangeOption("Past 30 Days", "past-30-days");
             addRangeOption("Last Week", "last-week");
             addRangeOption("Last Month", "last-month");
             addRangeOption("Last Year", "last-year");
